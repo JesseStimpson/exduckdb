@@ -1,4 +1,4 @@
-defmodule Exqlite.Pragma do
+defmodule Exduckdb.Pragma do
   @moduledoc """
   Handles parsing extra options for the SQLite connection
   """

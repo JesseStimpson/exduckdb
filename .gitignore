@@ -18,3 +18,5 @@ exqlite-*.tar
 # Temporary files for example tests
 /tmp
 *.db
+
+*.swp

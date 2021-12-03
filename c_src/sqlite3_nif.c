@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include <erl_nif.h>
-#include <sqlite3.h>
+#include <duckdb/tools/sqlite3_api_wrapper/include/sqlite3.h>
 
 #include "utf8.h"
 
@@ -27,7 +27,7 @@ static const char*
 get_sqlite3_error_msg(int rc, sqlite3* db)
 {
     if (rc == SQLITE_MISUSE) {
-        return "Sqlite3 was invoked incorrectly.";
+        return "DuckDB was invoked incorrectly.";
     }
 
     const char* message = sqlite3_errmsg(db);
@@ -803,38 +803,6 @@ on_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
     return 0;
 }
 
-
-//
-// Enable extension loading
-//
-
-static ERL_NIF_TERM
-exqlite_enable_load_extension(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
-{
-    assert(env);
-    connection_t* conn = NULL;
-    int rc             = SQLITE_OK;
-    int enable_load_extension_value;
-
-    if (argc != 2) {
-        return enif_make_badarg(env);
-    }
-
-    if (!enif_get_resource(env, argv[0], connection_type, (void**)&conn)) {
-        return make_error_tuple(env, "invalid_connection");
-    }
-
-    if (!enif_get_int(env, argv[1], &enable_load_extension_value)) {
-        return make_error_tuple(env, "invalid_enable_load_extension_value");
-    }
-
-    rc = sqlite3_enable_load_extension(conn->db, enable_load_extension_value);
-    if (rc != SQLITE_OK) {
-        return make_sqlite3_error_tuple(env, rc, conn->db);
-    }
-    return make_atom(env, "ok");
-}
-
 //
 // Most of our nif functions are going to be IO bounded
 //
@@ -854,7 +822,6 @@ static ErlNifFunc nif_funcs[] = {
   {"serialize", 2, exqlite_serialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"deserialize", 3, exqlite_deserialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"release", 2, exqlite_release, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"enable_load_extension", 2, exqlite_enable_load_extension, ERL_NIF_DIRTY_JOB_IO_BOUND},
 };
 
 // Elixir workaround for . in module names
@@ -863,4 +830,4 @@ static ErlNifFunc nif_funcs[] = {
 #define ERL_NIF_INIT_DECL(MODNAME) ErlNifEntry* sqlite3_nif_nif_init(ERL_NIF_INIT_ARGS)
 #endif
 
-ERL_NIF_INIT(Elixir.Exqlite.Sqlite3NIF, nif_funcs, on_load, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.Exduckdb.DuckDBNIF, nif_funcs, on_load, NULL, NULL, NULL)

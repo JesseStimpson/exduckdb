@@ -1,4 +1,4 @@
-defmodule Exqlite.Query do
+defmodule Exduckdb.Query do
   @moduledoc """
   Query struct returned from a successfully prepared query.
   """

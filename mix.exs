@@ -1,11 +1,11 @@
 defmodule Exqlite.MixProject do
   use Mix.Project
 
-  @version "0.8.0"
+  @version "0.9.0"
 
   def project do
     [
-      app: :exqlite,
+      app: :exduckdb,
       version: @version,
       elixir: "~> 1.10",
       compilers: [:elixir_make] ++ Mix.compilers(),
@@ -15,13 +15,13 @@ defmodule Exqlite.MixProject do
       deps: deps(),
       package: package(),
       description: description(),
-      test_paths: test_paths(System.get_env("EXQLITE_INTEGRATION")),
+      test_paths: test_paths(System.get_env("EXDUCKDB_INTEGRATION")),
       elixirc_paths: elixirc_paths(Mix.env()),
 
       # Docs
-      name: "Exqlite",
-      source_url: "https://github.com/elixir-sqlite/exqlite",
-      homepage_url: "https://github.com/elixir-sqlite/exqlite",
+      name: "Exduckdb",
+      source_url: "https://github.com/mpope9/exduckdb/",
+      homepage_url: "https://github.com/mpope9/exduckdb/",
       docs: docs()
     ]
   end
@@ -45,7 +45,7 @@ defmodule Exqlite.MixProject do
   end
 
   defp description do
-    "An Elixir SQLite3 library"
+    "An Elixir DuckDB library"
   end
 
   defp package do
@@ -60,10 +60,10 @@ defmodule Exqlite.MixProject do
         c_src
         Makefile*
       ),
-      name: "exqlite",
+      name: "exduckdb",
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/elixir-sqlite/exqlite"
+        "GitHub" => "https://github.com/mpope9/exduckdb/"
       }
     ]
   end
@@ -73,14 +73,13 @@ defmodule Exqlite.MixProject do
       main: "readme",
       extras: docs_extras(),
       source_ref: "v#{@version}",
-      source_url: "https://github.com/elixir-sqlite/exqlite"
+      source_url: "https://github.com/mpope9/exduckdb/"
     ]
   end
 
   defp docs_extras do
     [
       "README.md": [title: "Readme"],
-      "guides/windows.md": [],
       "CHANGELOG.md": []
     ]
   end

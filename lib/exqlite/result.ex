@@ -1,4 +1,4 @@
-defmodule Exqlite.Result do
+defmodule Exduckdb.Result do
   @type t :: %__MODULE__{
           command: atom,
           columns: [String.t()] | nil,

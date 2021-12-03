@@ -1,4 +1,4 @@
-defmodule Exqlite.Error do
+defmodule Exduckdb.Error do
   @moduledoc false
   defexception [:message, :statement]
 

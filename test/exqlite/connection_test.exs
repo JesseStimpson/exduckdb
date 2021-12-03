@@ -1,9 +1,9 @@
-defmodule Exqlite.ConnectionTest do
+defmodule Exduckdb.ConnectionTest do
   use ExUnit.Case
 
-  alias Exqlite.Connection
-  alias Exqlite.Query
-  alias Exqlite.Sqlite3
+  alias Exduckdb.Connection
+  alias Exduckdb.Query
+  alias Exduckdb.DuckDB
 
   describe ".connect/1" do
     test "returns error when path is missing from options" do
@@ -56,16 +56,16 @@ defmodule Exqlite.ConnectionTest do
     test "returns records" do
       path = Temp.path!()
 
-      {:ok, db} = Sqlite3.open(path)
+      {:ok, db} = DuckDB.open(path)
 
       :ok =
-        Sqlite3.execute(db, "create table users (id integer primary key, name text)")
+        DuckDB.execute(db, "create table users (id integer primary key, name text)")
 
-      :ok = Sqlite3.execute(db, "insert into users (id, name) values (1, 'Jim')")
-      :ok = Sqlite3.execute(db, "insert into users (id, name) values (2, 'Bob')")
-      :ok = Sqlite3.execute(db, "insert into users (id, name) values (3, 'Dave')")
-      :ok = Sqlite3.execute(db, "insert into users (id, name) values (4, 'Steve')")
-      Sqlite3.close(db)
+      :ok = DuckDB.execute(db, "insert into users (id, name) values (1, 'Jim')")
+      :ok = DuckDB.execute(db, "insert into users (id, name) values (2, 'Bob')")
+      :ok = DuckDB.execute(db, "insert into users (id, name) values (3, 'Dave')")
+      :ok = DuckDB.execute(db, "insert into users (id, name) values (4, 'Steve')")
+      DuckDB.close(db)
 
       {:ok, conn} = Connection.connect(database: path)
 
@@ -83,12 +83,12 @@ defmodule Exqlite.ConnectionTest do
     test "returns correctly for empty result" do
       path = Temp.path!()
 
-      {:ok, db} = Sqlite3.open(path)
+      {:ok, db} = DuckDB.open(path)
 
       :ok =
-        Sqlite3.execute(db, "create table users (id integer primary key, name text)")
+        DuckDB.execute(db, "create table users (id integer primary key, name text)")
 
-      Sqlite3.close(db)
+      DuckDB.close(db)
 
       {:ok, conn} = Connection.connect(database: path)
 
@@ -103,12 +103,12 @@ defmodule Exqlite.ConnectionTest do
 
       {:ok, _query, result, _conn} =
         %Query{
-          statement: "UPDATE users set name = 'wow' where id = 5 returning *",
+          statement: "UPDATE users set name = 'wow' where id = 5",
           command: :update
         }
         |> Connection.handle_execute([], [], conn)
 
-      assert result.rows == []
+      assert result.rows == nil
 
       File.rm(path)
     end

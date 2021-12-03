@@ -1,20 +1,14 @@
-# Exqlite
+# exduckdb
 
-[![Build Status](https://github.com/elixir-sqlite/exqlite/workflows/CI/badge.svg)](https://github.com/elixir-sqlite/exqlite/actions)
-[![Hex Package](https://img.shields.io/hexpm/v/exqlite.svg)](https://hex.pm/packages/exqlite)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/exqlite)
+A quick-n-dirty Elixir DuckDB library.
 
-An Elixir SQLite3 library.
+Mostly true to the original fork of [Exqlite](https://github.com/elixir-sqlite/exqlite), currently tracking version [0.3.1](https://github.com/duckdb/duckdb/releases/tag/v0.3.1) of DuckDB through git submodules.
 
-If you are looking for the Ecto adapater, take a look at the
-[Ecto SQLite3 library][ecto_sqlite3].
-
-Documentation: https://hexdocs.pm/exqlite
-Package: https://hex.pm/packages/exqlite
-
+Implemented using the provided [sqlite3_api_wrapper](https://github.com/duckdb/duckdb/tree/master/tools/sqlite3_api_wrapper) from DuckDB.
 
 ## Caveats
 
+### Upstread Sqlite caveats
 * Prepared statements are not cached.
 * Prepared statements are not immutable. You must be careful when manipulating
   statements and binding values to statements. Do not try to manipulate the
@@ -33,7 +27,7 @@ Package: https://hex.pm/packages/exqlite
 
 ```elixir
 defp deps do
-  {:exqlite, "~> 0.8.0"}
+  {:exduckdb, "~> 0.9.0"}
 end
 ```
 
@@ -41,7 +35,7 @@ end
 ## Configuration
 
 ```elixir
-config :exqlite, default_chunk_size: 100
+config :exduckdb, default_chunk_size: 100
 ```
 
 * `default_chunk_size` - The chunk size that is used when multi-stepping when
@@ -50,30 +44,30 @@ config :exqlite, default_chunk_size: 100
 
 ## Usage
 
-The `Exqlite.Sqlite3` module usage is fairly straight forward.
+The `Exduckdb.DuckDB` module usage is fairly straight forward.
 
 ```elixir
 # We'll just keep it in memory right now
-{:ok, conn} = Exqlite.Sqlite3.open(":memory:")
+{:ok, conn} = Exduckdb.DuckDB.open(":memory:")
 
 # Create the table
-:ok = Exqlite.Sqlite3.execute(conn, "create table test (id integer primary key, stuff text)");
+:ok = Exduckdb.DuckDB.execute(conn, "create table test (id integer primary key, stuff text)");
 
 # Prepare a statement
-{:ok, statement} = Exqlite.Sqlite3.prepare(conn, "insert into test (stuff) values (?1)")
-:ok = Exqlite.Sqlite3.bind(conn, statement, ["Hello world"])
+{:ok, statement} = Exduckdb.DuckDB.prepare(conn, "insert into test (stuff) values (?1)")
+:ok = Exduckdb.DuckDB.bind(conn, statement, ["Hello world"])
 
 # Step is used to run statements
-:done = Exqlite.Sqlite3.step(conn, statement)
+:done = Exduckdb.DuckDB.step(conn, statement)
 
 # Prepare a select statement
-{:ok, statement} = Exqlite.Sqlite3.prepare(conn, "select id, stuff from test");
+{:ok, statement} = Exduckdb.DuckDB.prepare(conn, "select id, stuff from test");
 
 # Get the results
-{:row, [1, "Hello world"]} = Exqlite.Sqlite3.step(conn, statement)
+{:row, [1, "Hello world"]} = Exduckdb.DuckDB.step(conn, statement)
 
 # No more results
-:done = Exqlite.Sqlite3.step(conn, statement)
+:done = Exduckdb.DuckDB.step(conn, statement)
 
 # Release the statement.
 #
@@ -82,56 +76,5 @@ The `Exqlite.Sqlite3` module usage is fairly straight forward.
 #
 # If you are operating at a high load issuing thousands of statements, it would be
 # possible to run out of memory or cause a lot of pressure on memory.
-:ok = Exqlite.Sqlite3.release(conn, statement)
+:ok = Exduckdb.DuckDB.release(conn, statement)
 ```
-
-### Using SQLite3 native extensions
-
-Exqlite supports loading [run-time loadable SQLite3 extensions](https://www.sqlite.org/loadext.html).
-A selection of precompiled extensions for popular CPU types / architectures is available by installing the [ExSqlean](https://github.com/mindreframer/ex_sqlean) package. This package wraps [SQLean: all the missing SQLite functions](https://github.com/nalgeon/sqlean).
-
-```elixir
-alias Exqlite.Basic
-{:ok, conn} = Basic.open("db.sqlite3")
-:ok = Basic.enable_load_extension(conn)
-
-# load the regexp extension - https://github.com/nalgeon/sqlean/blob/main/docs/re.md
-Basic.load_extension(conn, ExSqlean.path_for("re"))
-
-# run some queries to test the new `regexp_like` function
-{:ok, [[1]], ["value"]} = Basic.exec(conn, "select regexp_like('the year is 2021', ?) as value", ["2021"]) |> Basic.rows()
-{:ok, [[0]], ["value"]} = Basic.exec(conn, "select regexp_like('the year is 2021', ?) as value", ["2020"]) |> Basic.rows()
-
-# prevent loading further extensions
-:ok = Basic.disable_load_extension(conn)
-{:error, %Exqlite.Error{message: "not authorized"}, _} = Basic.load_extension(conn, ExSqlean.path_for("re"))
-
-# close connection
-Basic.close(conn)
-```
-
-## Why SQLite3
-
-I needed an Ecto3 adapter to store time series data for a personal project. I
-didn't want to go through the hassle of trying to setup a postgres database or
-mysql database when I was just wanting to explore data ingestion and some map
-reduce problems.
-
-I also noticed that other SQLite3 implementations didn't really fit my needs. At
-some point I also wanted to use this with a nerves project on an embedded device
-that would be resiliant to power outages and still maintain some state that
-`ets` can not afford.
-
-
-## Under The Hood
-
-We are using the Dirty NIF scheduler to execute the sqlite calls. The rationale
-behind this is that maintaining each sqlite's connection command pool is
-complicated and error prone.
-
-
-## Contributing
-
-Feel free to check the project out and submit pull requests.
-
-[ecto_sqlite3]: <https://github.com/elixir-sqlite/ecto_sqlite3>

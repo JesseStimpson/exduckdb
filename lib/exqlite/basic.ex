@@ -1,20 +1,20 @@
-defmodule Exqlite.Basic do
+defmodule Exduckdb.Basic do
   @moduledoc """
   A very basis API without lots of options to allow simpler usage for basic needs.
   """
 
-  alias Exqlite.Connection
-  alias Exqlite.Query
-  alias Exqlite.Sqlite3
-  alias Exqlite.Error
-  alias Exqlite.Result
+  alias Exduckdb.Connection
+  alias Exduckdb.Query
+  alias Exduckdb.DuckDB
+  alias Exduckdb.Error
+  alias Exduckdb.Result
 
   def open(path) do
     Connection.connect(database: path)
   end
 
   def close(conn = %Connection{}) do
-    with :ok <- Sqlite3.close(conn.db) do
+    with :ok <- DuckDB.close(conn.db) do
       :ok
     else
       {:error, reason} -> {:error, %Error{message: reason}}
@@ -35,15 +35,4 @@ defmodule Exqlite.Basic do
     end
   end
 
-  def load_extension(conn, path) do
-    exec(conn, "select load_extension(?)", [path])
-  end
-
-  def enable_load_extension(conn) do
-    Sqlite3.enable_load_extension(conn.db, true)
-  end
-
-  def disable_load_extension(conn) do
-    Sqlite3.enable_load_extension(conn.db, false)
-  end
 end

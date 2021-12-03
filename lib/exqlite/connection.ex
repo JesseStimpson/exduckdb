@@ -1,4 +1,4 @@
-defmodule Exqlite.Connection do
+defmodule Exduckdb.Connection do
   @moduledoc """
   This module imlements connection details as defined in DBProtocol.
 
@@ -23,11 +23,11 @@ defmodule Exqlite.Connection do
   """
 
   use DBConnection
-  alias Exqlite.Error
-  alias Exqlite.Pragma
-  alias Exqlite.Query
-  alias Exqlite.Result
-  alias Exqlite.Sqlite3
+  alias Exduckdb.Error
+  alias Exduckdb.Pragma
+  alias Exduckdb.Query
+  alias Exduckdb.Result
+  alias Exduckdb.DuckDB
 
   defstruct [
     :db,
@@ -38,7 +38,7 @@ defmodule Exqlite.Connection do
   ]
 
   @type t() :: %__MODULE__{
-          db: Sqlite3.db(),
+          db: DuckDB.db(),
           path: String.t(),
           transaction_status: :idle | :transaction,
           status: :idle | :busy
@@ -46,7 +46,7 @@ defmodule Exqlite.Connection do
 
   @impl true
   @doc """
-  Initializes the Ecto Exqlite adapter.
+  Initializes the Ecto Exduckdb adapter.
 
   For connection configurations we use the defaults that come with SQLite3, but
   we recommend which options to choose. We do not default to the recommended
@@ -125,7 +125,7 @@ defmodule Exqlite.Connection do
 
   @impl true
   def disconnect(_err, %__MODULE__{db: db}) do
-    with :ok <- Sqlite3.close(db) do
+    with :ok <- DuckDB.close(db) do
       :ok
     else
       {:error, reason} -> {:error, %Error{message: reason}}
@@ -251,7 +251,7 @@ defmodule Exqlite.Connection do
   """
   @impl true
   def handle_close(query, _opts, state) do
-    Sqlite3.release(state.db, query.ref)
+    DuckDB.release(state.db, query.ref)
     {:ok, nil, state}
   end
 
@@ -267,13 +267,13 @@ defmodule Exqlite.Connection do
 
   @impl true
   def handle_deallocate(%Query{} = query, _cursor, _opts, state) do
-    Sqlite3.release(state.db, query.ref)
+    DuckDB.release(state.db, query.ref)
     {:ok, nil, state}
   end
 
   @impl true
   def handle_fetch(%Query{statement: statement}, cursor, _opts, state) do
-    case Sqlite3.step(state.db, cursor) do
+    case DuckDB.step(state.db, cursor) do
       :done ->
         {
           :halt,
@@ -314,13 +314,13 @@ defmodule Exqlite.Connection do
   ### ----------------------------------
 
   defp set_pragma(db, pragma_name, value) do
-    Sqlite3.execute(db, "PRAGMA #{pragma_name} = #{value}")
+    DuckDB.execute(db, "PRAGMA #{pragma_name} = #{value}")
   end
 
   defp get_pragma(db, pragma_name) do
-    {:ok, statement} = Sqlite3.prepare(db, "PRAGMA #{pragma_name}")
+    {:ok, statement} = DuckDB.prepare(db, "PRAGMA #{pragma_name}")
 
-    case Sqlite3.fetch_all(db, statement) do
+    case DuckDB.fetch_all(db, statement) do
       {:ok, [[value]]} -> {:ok, value}
       _ -> :error
     end
@@ -389,7 +389,7 @@ defmodule Exqlite.Connection do
   end
 
   defp do_connect(path, options) do
-    with {:ok, db} <- Sqlite3.open(path),
+    with {:ok, db} <- DuckDB.open(path),
          :ok <- set_journal_mode(db, options),
          :ok <- set_temp_store(db, options),
          :ok <- set_synchronous(db, options),
@@ -413,7 +413,7 @@ defmodule Exqlite.Connection do
       {:ok, state}
     else
       {:error, reason} ->
-        {:error, %Exqlite.Error{message: reason}}
+        {:error, %Exduckdb.Error{message: reason}}
     end
   end
 
@@ -429,7 +429,7 @@ defmodule Exqlite.Connection do
   defp prepare(%Query{statement: statement} = query, options, state) do
     query = maybe_put_command(query, options)
 
-    with {:ok, ref} <- Sqlite3.prepare(state.db, IO.iodata_to_binary(statement)),
+    with {:ok, ref} <- DuckDB.prepare(state.db, IO.iodata_to_binary(statement)),
          query <- %{query | ref: ref} do
       {:ok, query}
     else
@@ -442,7 +442,7 @@ defmodule Exqlite.Connection do
   defp prepare_no_cache(%Query{statement: statement} = query, options, state) do
     query = maybe_put_command(query, options)
 
-    case Sqlite3.prepare(state.db, statement) do
+    case DuckDB.prepare(state.db, statement) do
       {:ok, ref} ->
         {:ok, %{query | ref: ref}}
 
@@ -453,7 +453,7 @@ defmodule Exqlite.Connection do
 
   defp maybe_changes(db, %Query{command: command})
        when command in [:update, :insert, :delete] do
-    case Sqlite3.changes(db) do
+    case DuckDB.changes(db) do
       {:ok, total} -> total
       _ -> nil
     end
@@ -471,7 +471,7 @@ defmodule Exqlite.Connection do
     with {:ok, query} <- bind_params(query, params, state),
          {:ok, columns} <- get_columns(query, state),
          {:ok, rows} <- get_rows(query, state),
-         {:ok, transaction_status} <- Sqlite3.transaction_status(state.db),
+         {:ok, transaction_status} <- DuckDB.transaction_status(state.db),
          changes <- maybe_changes(state.db, query) do
       case query.command do
         command when command in [:delete, :insert, :update] ->
@@ -504,7 +504,7 @@ defmodule Exqlite.Connection do
 
   defp bind_params(%Query{ref: ref, statement: statement} = query, params, state)
        when ref != nil do
-    case Sqlite3.bind(state.db, ref, params) do
+    case DuckDB.bind(state.db, ref, params) do
       :ok ->
         {:ok, query}
 
@@ -514,7 +514,7 @@ defmodule Exqlite.Connection do
   end
 
   defp get_columns(%Query{ref: ref, statement: statement}, state) do
-    case Sqlite3.columns(state.db, ref) do
+    case DuckDB.columns(state.db, ref) do
       {:ok, columns} ->
         {:ok, columns}
 
@@ -524,7 +524,7 @@ defmodule Exqlite.Connection do
   end
 
   defp get_rows(%Query{ref: ref, statement: statement}, state) do
-    case Sqlite3.fetch_all(state.db, ref, state.chunk_size) do
+    case DuckDB.fetch_all(state.db, ref, state.chunk_size) do
       {:ok, rows} ->
         {:ok, rows}
 
@@ -534,8 +534,8 @@ defmodule Exqlite.Connection do
   end
 
   defp handle_transaction(call, statement, state) do
-    with :ok <- Sqlite3.execute(state.db, statement),
-         {:ok, transaction_status} <- Sqlite3.transaction_status(state.db) do
+    with :ok <- DuckDB.execute(state.db, statement),
+         {:ok, transaction_status} <- DuckDB.transaction_status(state.db) do
       result = %Result{
         command: call,
         rows: [],

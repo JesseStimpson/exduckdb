@@ -1,6 +1,6 @@
-defmodule Exqlite.ErrorTest do
+defmodule Exduckdb.ErrorTest do
   use ExUnit.Case
-  alias Exqlite.Error
+  alias Exduckdb.Error
 
   describe "message/1" do
     test "with :statement" do

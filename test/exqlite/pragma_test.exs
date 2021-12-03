@@ -1,7 +1,7 @@
-defmodule Exqlite.PragmaTest do
+defmodule Exduckdb.PragmaTest do
   use ExUnit.Case
 
-  alias Exqlite.Pragma
+  alias Exduckdb.Pragma
 
   test ".journal_mode/1" do
     assert Pragma.journal_mode(journal_mode: :truncate) == "truncate"

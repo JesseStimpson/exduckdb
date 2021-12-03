@@ -1,2 +1,2 @@
-defmodule Exqlite do
+defmodule Exduckdb do
 end

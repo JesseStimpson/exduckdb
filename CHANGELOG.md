@@ -3,6 +3,9 @@
 ## [Unreleased](unreleased)
 
 
+## [0.9.0] - 2021-12-02
+- Switching from sqlite to duckdb.
+
 ## [0.8.0] - 2021-11-30
 ### Changed
 - Updated SQLite from [3.36.0](https://www.sqlite.org/releaselog/3_36_0.html) to [3.37.0](https://www.sqlite.org/releaselog/3_37_0.html).
