@@ -8,7 +8,7 @@ Implemented using the provided [sqlite3_api_wrapper](https://github.com/duckdb/d
 
 ## Caveats
 
-### Upstread Sqlite caveats
+### Upstream Sqlite caveats
 * Prepared statements are not cached.
 * Prepared statements are not immutable. You must be careful when manipulating
   statements and binding values to statements. Do not try to manipulate the
