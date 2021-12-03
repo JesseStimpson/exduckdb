@@ -1,4 +1,4 @@
-defmodule Exqlite.MixProject do
+defmodule Exduckdb.MixProject do
   use Mix.Project
 
   @version "0.9.0"
@@ -57,8 +57,12 @@ defmodule Exqlite.MixProject do
         README.md
         LICENSE
         .clang-format
-        c_src
+        c_src/utf8.h
+        c_src/sqlite3ext.h
+        c_src/sqlite3_nif.c
         Makefile*
+        c_src/duckdb/src/*
+        c_src/duckdb/tools/sqlite3_api_wrapper/*
       ),
       name: "exduckdb",
       licenses: ["MIT"],
