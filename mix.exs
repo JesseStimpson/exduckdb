@@ -37,7 +37,6 @@ defmodule Exduckdb.MixProject do
   defp deps do
     [
       {:db_connection, "~> 2.1"},
-      {:ex_sqlean, "~> 0.8.5", only: [:dev, :test]},
       {:elixir_make, "~> 0.6", runtime: false},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
       {:temp, "~> 0.4", only: [:dev, :test]}
@@ -58,8 +57,7 @@ defmodule Exduckdb.MixProject do
         LICENSE
         .clang-format
         c_src/utf8.h
-        c_src/sqlite3ext.h
-        c_src/sqlite3_nif.c
+        c_src/duckdb_nif.c
         Makefile*
         c_src/duckdb/src/*
         c_src/duckdb/tools/sqlite3_api_wrapper/*

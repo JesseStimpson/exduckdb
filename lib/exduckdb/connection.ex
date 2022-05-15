@@ -24,7 +24,7 @@ defmodule Exduckdb.Connection do
 
   use DBConnection
   alias Exduckdb.Error
-  alias Exduckdb.Pragma
+  #alias Exduckdb.Pragma
   alias Exduckdb.Query
   alias Exduckdb.Result
   alias Exduckdb.DuckDB
@@ -56,44 +56,6 @@ defmodule Exduckdb.Connection do
 
     * `:database` - The path to the database. In memory is allowed. You can use
       `:memory` or `":memory:"` to designate that.
-    * `:journal_mode` - Sets the journal mode for the sqlite connection. Can be
-      one of the following `:delete`, `:truncate`, `:persist`, `:memory`,
-      `:wal`, or `:off`. Defaults to `:delete`. It is recommended that you use
-      `:wal` due to support for concurrent reads. Note: `:wal` does not mean
-      concurrent writes.
-    * `:temp_store` - Sets the storage used for temporary tables. Default is
-      `:default`. Allowed values are `:default`, `:file`, `:memory`. It is
-      recommended that you use `:memory` for storage.
-    * `:synchronous` - Can be `:extra`, `:full`, `:normal`, or `:off`. Defaults
-      to `:normal`.
-    * `:foreign_keys` - Sets if foreign key checks should be enforced or not.
-      Can be `:on` or `:off`. Default is `:on`.
-    * `:cache_size` - Sets the cache size to be used for the connection. This is
-      an odd setting as a positive value is the number of pages in memory to use
-      and a negative value is the size in kilobytes to use. Default is `-2000`.
-      It is recommended that you use `-64000`.
-    * `:cache_spill` - The cache_spill pragma enables or disables the ability of
-      the pager to spill dirty cache pages to the database file in the middle of
-      a transaction. By default it is `:on`, and for most applications, it
-      should remain so.
-    * `:case_sensitive_like`
-    * `:auto_vacuum` - Defaults to `:none`. Can be `:none`, `:full` or
-      `:incremental`. Depending on the database size, `:incremental` may be
-      beneficial.
-    * `:locking_mode` - Defaults to `:normal`. Allowed values are `:normal` or
-      `:exclusive`. See [sqlite documenation][1] for more information.
-    * `:secure_delete` - Defaults to `:off`. If enabled, it will cause SQLite3
-      to overwrite records that were deleted with zeros.
-    * `:wal_auto_check_point` - Sets the write-ahead log auto-checkpoint
-      interval. Default is `1000`. Setting the auto-checkpoint size to zero or a
-      negative value turns auto-checkpointing off.
-    * `:busy_timeout` - Sets the busy timeout in milliseconds for a connection.
-      Default is `2000`.
-    * `:chunk_size` - The chunk size for bulk fetching. Defaults to `50`.
-
-  For more information about the options above, see [sqlite documenation][1]
-
-  [1]: https://www.sqlite.org/pragma.html
   """
   def connect(options) do
     database = Keyword.get(options, :database)
@@ -313,95 +275,37 @@ defmodule Exduckdb.Connection do
   #     Internal functions and helpers
   ### ----------------------------------
 
-  defp set_pragma(db, pragma_name, value) do
-    DuckDB.execute(db, "PRAGMA #{pragma_name} = #{value}")
-  end
+  # TODO: Support duckdb pragmas
+  #defp set_pragma(db, pragma_name, value) do
+  #  DuckDB.execute(db, "PRAGMA #{pragma_name} = #{value}")
+  #end
 
-  defp get_pragma(db, pragma_name) do
-    {:ok, statement} = DuckDB.prepare(db, "PRAGMA #{pragma_name}")
+  #defp get_pragma(db, pragma_name) do
+  #  {:ok, statement} = DuckDB.prepare(db, "PRAGMA #{pragma_name}")
 
-    case DuckDB.fetch_all(db, statement) do
-      {:ok, [[value]]} -> {:ok, value}
-      _ -> :error
-    end
-  end
+  #  case DuckDB.fetch_all(db, statement) do
+  #    {:ok, [[value]]} -> {:ok, value}
+  #    _ -> :error
+  #  end
+  #end
 
-  defp maybe_set_pragma(db, pragma_name, value) do
-    case get_pragma(db, pragma_name) do
-      {:ok, current} ->
-        if current == value do
-          :ok
-        else
-          set_pragma(db, pragma_name, value)
-        end
+  #defp maybe_set_pragma(db, pragma_name, value) do
+  #  case get_pragma(db, pragma_name) do
+  #    {:ok, current} ->
+  #      if current == value do
+  #        :ok
+  #      else
+  #        set_pragma(db, pragma_name, value)
+  #      end
 
-      _ ->
-        set_pragma(db, pragma_name, value)
-    end
-  end
-
-  defp set_journal_mode(db, options) do
-    maybe_set_pragma(db, "journal_mode", Pragma.journal_mode(options))
-  end
-
-  defp set_temp_store(db, options) do
-    set_pragma(db, "temp_store", Pragma.temp_store(options))
-  end
-
-  defp set_synchronous(db, options) do
-    set_pragma(db, "synchronous", Pragma.synchronous(options))
-  end
-
-  defp set_foreign_keys(db, options) do
-    set_pragma(db, "foreign_keys", Pragma.foreign_keys(options))
-  end
-
-  defp set_cache_size(db, options) do
-    maybe_set_pragma(db, "cache_size", Pragma.cache_size(options))
-  end
-
-  defp set_cache_spill(db, options) do
-    set_pragma(db, "cache_spill", Pragma.cache_spill(options))
-  end
-
-  defp set_case_sensitive_like(db, options) do
-    set_pragma(db, "case_sensitive_like", Pragma.case_sensitive_like(options))
-  end
-
-  defp set_auto_vacuum(db, options) do
-    set_pragma(db, "auto_vacuum", Pragma.auto_vacuum(options))
-  end
-
-  defp set_locking_mode(db, options) do
-    set_pragma(db, "locking_mode", Pragma.locking_mode(options))
-  end
-
-  defp set_secure_delete(db, options) do
-    set_pragma(db, "secure_delete", Pragma.secure_delete(options))
-  end
-
-  defp set_wal_auto_check_point(db, options) do
-    set_pragma(db, "wal_autocheckpoint", Pragma.wal_auto_check_point(options))
-  end
-
-  defp set_busy_timeout(db, options) do
-    set_pragma(db, "busy_timeout", Pragma.busy_timeout(options))
-  end
+  #    _ ->
+  #      set_pragma(db, pragma_name, value)
+  #  end
+  #end
 
   defp do_connect(path, options) do
-    with {:ok, db} <- DuckDB.open(path),
-         :ok <- set_journal_mode(db, options),
-         :ok <- set_temp_store(db, options),
-         :ok <- set_synchronous(db, options),
-         :ok <- set_foreign_keys(db, options),
-         :ok <- set_cache_size(db, options),
-         :ok <- set_cache_spill(db, options),
-         :ok <- set_auto_vacuum(db, options),
-         :ok <- set_locking_mode(db, options),
-         :ok <- set_secure_delete(db, options),
-         :ok <- set_wal_auto_check_point(db, options),
-         :ok <- set_case_sensitive_like(db, options),
-         :ok <- set_busy_timeout(db, options) do
+    with {:ok, db} <- DuckDB.open(path) do
+         #:ok <- set_journal_mode(db, options) do
       state = %__MODULE__{
         db: db,
         path: path,

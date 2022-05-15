@@ -16,51 +16,47 @@
 # LDFLAGS       linker flags for linking all binaries
 #
 
-SRC = $(wildcard c_src/*.c)
-HEADERS = $(wildcard c_src/*.h)
+SRC = c_src/duckdb_nif.c
+HEADERS = $(wildcard c_src/duckdb/src/*.h) $(wildcard c_src/duckdb/src/*.hpp) c_src/utf8.h c_src/duckdb/tools/sqlite3_api_wrapper/include/sqlite3.h
 
-CFLAGS ?= -O2 -Wall
+ERTS_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts/erts-~ts/include/\", [code:root_dir(), erlang:system_info(version)]).")
+ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, include)]).")
+ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, lib)]).")
+
+LDLIBS += -L $(ERL_INTERFACE_LIB_DIR) -lei
+
+CFLAGS ?= -O2 -Wall -I $(ERL_INTERFACE_INCLUDE_DIR)
 ifneq ($(DEBUG),)
 	CFLAGS += -g
 endif
 CFLAGS += -I"$(ERTS_INCLUDE_DIR)"
-CFLAGS += -Ic_src
+CFLAGS += -Ic_src -Ic_src/duckdb/src -Ic_src/duckdb/sqlite3_api_wrapper/
 
 KERNEL_NAME := $(shell uname -s)
 
 PREFIX = $(MIX_APP_PATH)/priv
 BUILD  = $(MIX_APP_PATH)/obj
-LIB_NAME = $(PREFIX)/sqlite3_nif.so
-ARCHIVE_NAME = $(PREFIX)/sqlite3_nif.a
+LIB_NAME = $(PREFIX)/duckdb_nif.so
+ARCHIVE_NAME = $(PREFIX)/duckdb_nif.a
 
 OBJ = $(SRC:c_src/%.c=$(BUILD)/%.o)
 
-ifneq ($(CROSSCOMPILE),)
-	ifeq ($(CROSSCOMPILE), Android)
-		CFLAGS += -fPIC -Os -z global
-		LDFLAGS += -fPIC -shared
-	else
-		CFLAGS += -fPIC -fvisibility=hidden
-		LDFLAGS += -fPIC -shared
-	endif
-else
-	ifeq ($(KERNEL_NAME), Linux)
-		CFLAGS += -fPIC -fvisibility=hidden
-		LDFLAGS += -fPIC -shared
-	endif
-	ifeq ($(KERNEL_NAME), Darwin)
-		CFLAGS += -fPIC
-		LDFLAGS += -dynamiclib -undefined dynamic_lookup
-	endif
-	ifeq (MINGW, $(findstring MINGW,$(KERNEL_NAME)))
-		CFLAGS += -fPIC
-		LDFLAGS += -fPIC -shared
-		LIB_NAME = $(PREFIX)/sqlite3_nif.dll
-	endif
-	ifeq ($(KERNEL_NAME), $(filter $(KERNEL_NAME),OpenBSD FreeBSD NetBSD))
-		CFLAGS += -fPIC
-		LDFLAGS += -fPIC -shared
-	endif
+ifeq ($(KERNEL_NAME), Linux)
+	CFLAGS += -fPIC -fvisibility=hidden
+	LDFLAGS += -fPIC -shared -lc_src/duckdb/build/release/src/libduckdb_static.a -lc_src/duckdb/build/release/tools/sqlite3_api_wrapper/libsqlite3_api_wrapper_static.a
+endif
+ifeq ($(KERNEL_NAME), Darwin)
+	CFLAGS += -fPIC
+	LDFLAGS += -shared -flat_namespace -undefined suppress -L c_src/duckdb/build/release/src/ -llibduckdb_static -L./c_src/duckdb/build/release/tools/sqlite3_api_wrapper/ -llibsqlite3_api_wrapper
+endif
+ifeq (MINGW, $(findstring MINGW,$(KERNEL_NAME)))
+	CFLAGS += -fPIC
+	LDFLAGS += -fPIC -shared
+	LIB_NAME = $(PREFIX)/duckdb_nif.dll
+endif
+ifeq ($(KERNEL_NAME), $(filter $(KERNEL_NAME),OpenBSD FreeBSD NetBSD))
+	CFLAGS += -fPIC
+	LDFLAGS += -fPIC -shared
 endif
 
 # ########################
@@ -99,16 +95,16 @@ endif
 CFLAGS += -DNDEBUG=1
 
 ifeq ($(STATIC_ERLANG_NIF),)
-all: $(PREFIX) $(BUILD) $(LIB_NAME)
+all: duckdb $(PREFIX) $(BUILD) $(LIB_NAME)
 else
-all: $(PREFIX) $(BUILD) $(ARCHIVE_NAME)
+all: duckdb $(PREFIX) $(BUILD) $(ARCHIVE_NAME)
 endif
 
 $(BUILD)/%.o: c_src/%.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS) 
 
 $(LIB_NAME): $(OBJ)
-	$(CC) -o $@ $(LDFLAGS) $^
+	$(CC) -o $@ $(LDFLAGS) $(LDLIBS) $^
 
 $(ARCHIVE_NAME): $(OBJ)
 	$(AR) -rv $@ $^
@@ -116,7 +112,11 @@ $(ARCHIVE_NAME): $(OBJ)
 $(PREFIX) $(BUILD):
 	mkdir -p $@
 
+duckdb:
+	make -C c_src/duckdb/
+
 clean:
 	$(RM) $(LIB_NAME) $(ARCHIVE_NAME) $(OBJ)
+	make -C c_src/duckdb/ clean
 
 .PHONY: all clean

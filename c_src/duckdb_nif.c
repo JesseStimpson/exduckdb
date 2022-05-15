@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include <erl_nif.h>
-#include <duckdb/tools/sqlite3_api_wrapper/include/sqlite3.h>
+#include "duckdb/tools/sqlite3_api_wrapper/include/sqlite3.h"
 
 #include "utf8.h"
 
@@ -24,7 +24,7 @@ typedef struct statement
 } statement_t;
 
 static const char*
-get_sqlite3_error_msg(int rc, sqlite3* db)
+get_duckdb_error_msg(int rc, sqlite3* db)
 {
     if (rc == SQLITE_MISUSE) {
         return "DuckDB was invoked incorrectly.";
@@ -88,9 +88,9 @@ make_binary(ErlNifEnv* env, const void* bytes, unsigned int size)
 }
 
 static ERL_NIF_TERM
-make_sqlite3_error_tuple(ErlNifEnv* env, int rc, sqlite3* db)
+make_duckdb_error_tuple(ErlNifEnv* env, int rc, sqlite3* db)
 {
-    const char* msg = get_sqlite3_error_msg(rc, db);
+    const char* msg = get_duckdb_error_msg(rc, db);
     size_t len      = utf8len(msg);
 
     return enif_make_tuple2(
@@ -100,7 +100,7 @@ make_sqlite3_error_tuple(ErlNifEnv* env, int rc, sqlite3* db)
 }
 
 static ERL_NIF_TERM
-exqlite_open(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_open(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -139,7 +139,7 @@ exqlite_open(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_close(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_close(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -163,7 +163,7 @@ exqlite_close(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if (autocommit == 0) {
         rc = sqlite3_exec(conn->db, "ROLLBACK;", NULL, NULL, NULL);
         if (rc != SQLITE_OK) {
-            return make_sqlite3_error_tuple(env, rc, conn->db);
+            return make_duckdb_error_tuple(env, rc, conn->db);
         }
     }
 
@@ -183,7 +183,7 @@ exqlite_close(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 /// @brief Executes an SQL string.
 ///
 static ERL_NIF_TERM
-exqlite_execute(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_execute(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -210,7 +210,7 @@ exqlite_execute(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     rc = sqlite3_exec(conn->db, (char*)bin.data, NULL, NULL, NULL);
     if (rc != SQLITE_OK) {
-        return make_sqlite3_error_tuple(env, rc, conn->db);
+        return make_duckdb_error_tuple(env, rc, conn->db);
     }
 
     return make_atom(env, "ok");
@@ -220,7 +220,7 @@ exqlite_execute(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 /// @brief Get the number of changes recently done to the database.
 ///
 static ERL_NIF_TERM
-exqlite_changes(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_changes(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -242,7 +242,7 @@ exqlite_changes(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 /// @brief Prepares an Sqlite3 statement for execution
 ///
 static ERL_NIF_TERM
-exqlite_prepare(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_prepare(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -273,7 +273,7 @@ exqlite_prepare(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     rc = sqlite3_prepare_v3(conn->db, (char*)bin.data, bin.size, 0, &statement->statement, NULL);
     if (rc != SQLITE_OK) {
         enif_release_resource(statement);
-        return make_sqlite3_error_tuple(env, rc, conn->db);
+        return make_duckdb_error_tuple(env, rc, conn->db);
     }
 
     result = enif_make_resource(env, statement);
@@ -338,7 +338,7 @@ bind(ErlNifEnv* env, const ERL_NIF_TERM arg, sqlite3_stmt* statement, int index)
 /// @brief Binds arguments to the sql statement
 ///
 static ERL_NIF_TERM
-exqlite_bind(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_bind(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -388,7 +388,7 @@ exqlite_bind(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         }
 
         if (rc != SQLITE_OK) {
-            return make_sqlite3_error_tuple(env, rc, conn->db);
+            return make_duckdb_error_tuple(env, rc, conn->db);
         }
 
         list = tail;
@@ -454,7 +454,7 @@ make_row(ErlNifEnv* env, sqlite3_stmt* statement)
 }
 
 static ERL_NIF_TERM
-exqlite_multi_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_multi_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -502,7 +502,7 @@ exqlite_multi_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
             default:
                 sqlite3_reset(statement->statement);
-                return make_sqlite3_error_tuple(env, rc, conn->db);
+                return make_duckdb_error_tuple(env, rc, conn->db);
         }
     }
 
@@ -510,7 +510,7 @@ exqlite_multi_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -542,12 +542,12 @@ exqlite_step(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         case SQLITE_DONE:
             return make_atom(env, "done");
         default:
-            return make_sqlite3_error_tuple(env, rc, conn->db);
+            return make_duckdb_error_tuple(env, rc, conn->db);
     }
 }
 
 static ERL_NIF_TERM
-exqlite_columns(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_columns(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -598,7 +598,7 @@ exqlite_columns(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_last_insert_rowid(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_last_insert_rowid(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -617,7 +617,7 @@ exqlite_last_insert_rowid(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_transaction_status(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_transaction_status(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -638,7 +638,7 @@ exqlite_transaction_status(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_serialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_serialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -673,7 +673,7 @@ exqlite_serialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ERL_NIF_TERM
-exqlite_deserialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_deserialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -711,14 +711,14 @@ exqlite_deserialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     memcpy(buffer, serialized.data, size);
     rc = sqlite3_deserialize(conn->db, "main", buffer, size, size, flags);
     if (rc != SQLITE_OK) {
-        return make_sqlite3_error_tuple(env, rc, conn->db);
+        return make_duckdb_error_tuple(env, rc, conn->db);
     }
 
     return make_atom(env, "ok");
 }
 
 static ERL_NIF_TERM
-exqlite_release(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+exduckdb_release(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     assert(env);
 
@@ -780,7 +780,7 @@ on_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
 
     connection_type = enif_open_resource_type(
       env,
-      "exqlite",
+      "exduckdb",
       "connection_type",
       connection_type_destructor,
       ERL_NIF_RT_CREATE,
@@ -791,7 +791,7 @@ on_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
 
     statement_type = enif_open_resource_type(
       env,
-      "exqlite",
+      "exduckdb",
       "statement_type",
       statement_type_destructor,
       ERL_NIF_RT_CREATE,
@@ -808,26 +808,26 @@ on_load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
 //
 
 static ErlNifFunc nif_funcs[] = {
-  {"open", 1, exqlite_open, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"close", 1, exqlite_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"execute", 2, exqlite_execute, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"changes", 1, exqlite_changes, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"prepare", 2, exqlite_prepare, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"bind", 3, exqlite_bind, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"step", 2, exqlite_step, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"multi_step", 3, exqlite_multi_step, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"columns", 2, exqlite_columns, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"last_insert_rowid", 1, exqlite_last_insert_rowid, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"transaction_status", 1, exqlite_transaction_status, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"serialize", 2, exqlite_serialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"deserialize", 3, exqlite_deserialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
-  {"release", 2, exqlite_release, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"open", 1, exduckdb_open, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"close", 1, exduckdb_close, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"execute", 2, exduckdb_execute, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"changes", 1, exduckdb_changes, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"prepare", 2, exduckdb_prepare, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"bind", 3, exduckdb_bind, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"step", 2, exduckdb_step, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"multi_step", 3, exduckdb_multi_step, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"columns", 2, exduckdb_columns, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"last_insert_rowid", 1, exduckdb_last_insert_rowid, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"transaction_status", 1, exduckdb_transaction_status, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"serialize", 2, exduckdb_serialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"deserialize", 3, exduckdb_deserialize, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"release", 2, exduckdb_release, ERL_NIF_DIRTY_JOB_IO_BOUND},
 };
 
 // Elixir workaround for . in module names
 #ifdef STATIC_ERLANG_NIF
 #undef ERL_NIF_INIT_DECL
-#define ERL_NIF_INIT_DECL(MODNAME) ErlNifEntry* sqlite3_nif_nif_init(ERL_NIF_INIT_ARGS)
+#define ERL_NIF_INIT_DECL(MODNAME) ErlNifEntry* duckdb_nif_nif_init(ERL_NIF_INIT_ARGS)
 #endif
 
 ERL_NIF_INIT(Elixir.Exduckdb.DuckDBNIF, nif_funcs, on_load, NULL, NULL, NULL)

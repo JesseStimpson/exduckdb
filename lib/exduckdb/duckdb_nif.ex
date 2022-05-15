@@ -12,7 +12,7 @@ defmodule Exduckdb.DuckDBNIF do
   @type reason() :: :atom | String.Chars.t()
 
   def load_nif() do
-    path = :filename.join(:code.priv_dir(:exduckdb), 'sqlite3_nif')
+    path = :filename.join(:code.priv_dir(:exduckdb), 'duckdb_nif')
     :erlang.load_nif(path, 0)
   end
 

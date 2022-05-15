@@ -22,9 +22,9 @@ defmodule Exduckdb.DuckDB do
   @type row() :: []
 
   @doc """
-  Opens a new sqlite database at the Path provided.
+  Opens a new duckdb database at the Path provided.
 
-  If `path` can be `":memory"` to keep the sqlite database in memory.
+  If `path` can be `":memory"` to keep the duckdb database in memory.
   """
   @spec open(String.t()) :: {:ok, db()} | {:error, reason()}
   def open(path), do: DuckDBNIF.open(String.to_charlist(path))
@@ -81,7 +81,7 @@ defmodule Exduckdb.DuckDB do
 
   @spec multi_step(db(), statement()) :: :busy | {:rows, [row()]} | {:done, [row()]}
   def multi_step(conn, statement) do
-    chunk_size = Application.get_env(:exqlite, :default_chunk_size, 50)
+    chunk_size = Application.get_env(:exduckdb, :default_chunk_size, 50)
     multi_step(conn, statement, chunk_size)
   end
 
@@ -130,7 +130,7 @@ defmodule Exduckdb.DuckDB do
     # getting work done.
     #
     # For now this just works
-    chunk_size = Application.get_env(:exqlite, :default_chunk_size, 50)
+    chunk_size = Application.get_env(:exduckdb, :default_chunk_size, 50)
     fetch_all(conn, statement, chunk_size, [])
   end
 
