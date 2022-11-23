@@ -62,8 +62,7 @@ defmodule Exduckdb.DuckDBTest do
     test "creates a virtual table with fts3" do
       {:ok, conn} = DuckDB.open(":memory:")
 
-      :ok =
-        DuckDB.execute(conn, "create virtual table things using fts3(content text)")
+      :ok = DuckDB.execute(conn, "create virtual table things using fts3(content text)")
 
       :ok =
         DuckDB.execute(conn, "insert into things(content) VALUES ('this is content')")
@@ -72,8 +71,7 @@ defmodule Exduckdb.DuckDBTest do
     test "creates a virtual table with fts4" do
       {:ok, conn} = DuckDB.open(":memory:")
 
-      :ok =
-        DuckDB.execute(conn, "create virtual table things using fts4(content text)")
+      :ok = DuckDB.execute(conn, "create virtual table things using fts4(content text)")
 
       :ok =
         DuckDB.execute(conn, "insert into things(content) VALUES ('this is content')")
@@ -86,6 +84,18 @@ defmodule Exduckdb.DuckDBTest do
 
       :ok =
         DuckDB.execute(conn, "insert into things(content) VALUES ('this is content')")
+    end
+
+    test "handles unicode characters" do
+      {:ok, conn} = DuckDB.open(":memory:")
+
+      :ok =
+        DuckDB.execute(
+          conn,
+          "create table test (id integer primary key, stuff text)"
+        )
+
+      :ok = DuckDB.execute(conn, "insert into test (stuff) values ('😝')")
     end
   end
 

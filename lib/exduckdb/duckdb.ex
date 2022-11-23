@@ -43,7 +43,7 @@ defmodule Exduckdb.DuckDB do
   """
   @spec execute(db(), String.t()) :: :ok | {:error, reason()}
   def execute(conn, sql) do
-    case DuckDBNIF.execute(conn, String.to_charlist(sql)) do
+    case DuckDBNIF.execute(conn, sql) do
       :ok -> :ok
       {:error, reason} -> {:error, reason}
       _ -> {:error, "unhandled error"}
@@ -62,7 +62,7 @@ defmodule Exduckdb.DuckDB do
 
   @spec prepare(db(), String.t()) :: {:ok, statement()} | {:error, reason()}
   def prepare(conn, sql) do
-    DuckDBNIF.prepare(conn, String.to_charlist(sql))
+    DuckDBNIF.prepare(conn, sql)
   end
 
   @spec bind(db(), statement(), nil) :: :ok | {:error, reason()}
