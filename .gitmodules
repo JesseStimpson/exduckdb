@@ -1,3 +1,4 @@
 [submodule "c_src/duckdb"]
 	path = c_src/duckdb
-	url = https://github.com/duckdb/duckdb
+  url = https://github.com/duckdb/duckdb
+  tag = v0.6.0

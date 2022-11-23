@@ -2,9 +2,9 @@
 
 A quick-n-dirty Elixir DuckDB library.
 
-Mostly true to the original fork of [Exqlite](https://github.com/elixir-sqlite/exqlite), currently tracking version [0.3.1](https://github.com/duckdb/duckdb/releases/tag/v0.3.1) of DuckDB through git submodules.
+Mostly true to the original fork of [Exqlite](https://github.com/elixir-sqlite/exqlite), currently tracking version [0.6.0](https://github.com/duckdb/duckdb/releases/tag/v0.6.0) of DuckDB through git submodules.
 
-Implemented using the provided [sqlite3_api_wrapper](https://github.com/duckdb/duckdb/tree/master/tools/sqlite3_api_wrapper) from DuckDB.
+Implemented using the provided [sqlite3_api_wrapper](https://github.com/duckdb/duckdb/tree/v0.6.0/tools/sqlite3_api_wrapper) from DuckDB.
 
 ## Caveats
 
