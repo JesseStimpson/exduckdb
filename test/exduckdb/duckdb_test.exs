@@ -226,12 +226,6 @@ defmodule Exduckdb.DuckDBTest do
       {:row, columns} = DuckDB.step(conn, statement)
       assert [2, "Another test"] == columns
       assert :done = DuckDB.step(conn, statement)
-
-      {:row, columns} = DuckDB.step(conn, statement)
-      assert [1, "This is a test"] == columns
-      {:row, columns} = DuckDB.step(conn, statement)
-      assert [2, "Another test"] == columns
-      assert :done = DuckDB.step(conn, statement)
     end
 
     test "returns no results" do

@@ -36,9 +36,9 @@ defmodule Exduckdb.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 2.1"},
+      {:db_connection, "~> 2.4"},
       {:elixir_make, "~> 0.6", runtime: false},
-      {:ex_doc, "~> 0.24", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:temp, "~> 0.4", only: [:dev, :test]}
     ]
   end
