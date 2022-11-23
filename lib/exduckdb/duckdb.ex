@@ -19,7 +19,7 @@ defmodule Exduckdb.DuckDB do
   @type db() :: reference()
   @type statement() :: reference()
   @type reason() :: atom() | String.t()
-  @type row() :: []
+  @type row() :: list()
 
   @doc """
   Opens a new duckdb database at the Path provided.
@@ -46,7 +46,6 @@ defmodule Exduckdb.DuckDB do
     case DuckDBNIF.execute(conn, sql) do
       :ok -> :ok
       {:error, reason} -> {:error, reason}
-      _ -> {:error, "unhandled error"}
     end
   end
 
@@ -57,7 +56,7 @@ defmodule Exduckdb.DuckDB do
 
   See: https://sqlite.org/c3ref/changes.html
   """
-  @spec changes(db()) :: {:ok, integer()}
+  @spec changes(db()) :: {:ok, integer()} | {:error, reason()}
   def changes(conn), do: DuckDBNIF.changes(conn)
 
   @spec prepare(db(), String.t()) :: {:ok, statement()} | {:error, reason()}
@@ -68,25 +67,26 @@ defmodule Exduckdb.DuckDB do
   @spec bind(db(), statement(), nil) :: :ok | {:error, reason()}
   def bind(conn, statement, nil), do: bind(conn, statement, [])
 
-  @spec bind(db(), statement(), []) :: :ok | {:error, reason()}
+  @spec bind(db(), statement(), list()) :: :ok | {:error, reason()}
   def bind(conn, statement, args) do
     DuckDBNIF.bind(conn, statement, Enum.map(args, &convert/1))
   end
 
-  @spec columns(db(), statement()) :: {:ok, []} | {:error, reason()}
+  @spec columns(db(), statement()) :: {:ok, [binary()]} | {:error, reason()}
   def columns(conn, statement), do: DuckDBNIF.columns(conn, statement)
 
-  @spec step(db(), statement()) :: :done | :busy | {:row, []}
+  @spec step(db(), statement()) :: :done | :busy | {:row, [row()]} | {:error, reason()}
   def step(conn, statement), do: DuckDBNIF.step(conn, statement)
 
-  @spec multi_step(db(), statement()) :: :busy | {:rows, [row()]} | {:done, [row()]}
+  @spec multi_step(db(), statement()) ::
+          {:rows, [row()]} | {:done, [row()]} | {:error, reason()}
   def multi_step(conn, statement) do
     chunk_size = Application.get_env(:exduckdb, :default_chunk_size, 50)
     multi_step(conn, statement, chunk_size)
   end
 
   @spec multi_step(db(), statement(), integer()) ::
-          :busy | {:rows, [row()]} | {:done, [row()]}
+          {:rows, [row()]} | {:done, [row()]} | {:error, reason()}
   def multi_step(conn, statement, chunk_size) do
     case DuckDBNIF.multi_step(conn, statement, chunk_size) do
       :busy ->
@@ -118,11 +118,6 @@ defmodule Exduckdb.DuckDB do
     DuckDBNIF.execute(conn, String.to_charlist("PRAGMA shrink_memory"))
   end
 
-  @spec fetch_all(db(), statement(), integer()) :: {:ok, [row()]} | {:error, reason()}
-  def fetch_all(conn, statement, chunk_size) do
-    fetch_all(conn, statement, chunk_size, [])
-  end
-
   @spec fetch_all(db(), statement()) :: {:ok, [row()]} | {:error, reason()}
   def fetch_all(conn, statement) do
     # TODO: Should this be done in the NIF? It can be _much_ faster to build a
@@ -131,22 +126,21 @@ defmodule Exduckdb.DuckDB do
     #
     # For now this just works
     chunk_size = Application.get_env(:exduckdb, :default_chunk_size, 50)
-    fetch_all(conn, statement, chunk_size, [])
+    fetch_all(conn, statement, chunk_size)
   end
 
-  defp fetch_all(conn, statement, chunk_size, accum) do
+  @spec fetch_all(db(), statement(), integer()) :: {:ok, [row()]} | {:error, reason()}
+  def fetch_all(conn, statement, chunk_size) do
+    {:ok, try_fetch_all(conn, statement, chunk_size)}
+  catch
+    :throw, {:error, _reason} = error -> error
+  end
+
+  defp try_fetch_all(conn, statement, chunk_size) do
     case multi_step(conn, statement, chunk_size) do
-      {:done, rows} ->
-        {:ok, accum ++ rows}
-
-      {:rows, rows} ->
-        fetch_all(conn, statement, chunk_size, accum ++ rows)
-
-      {:error, reason} ->
-        {:error, reason}
-
-      :busy ->
-        {:error, "Database busy"}
+      {:done, rows} -> rows
+      {:rows, rows} -> rows ++ try_fetch_all(conn, statement, chunk_size)
+      {:error, _} = error -> throw(error)
     end
   end
 

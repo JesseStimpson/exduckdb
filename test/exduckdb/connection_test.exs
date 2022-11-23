@@ -58,8 +58,7 @@ defmodule Exduckdb.ConnectionTest do
 
       {:ok, db} = DuckDB.open(path)
 
-      :ok =
-        DuckDB.execute(db, "create table users (id integer primary key, name text)")
+      :ok = DuckDB.execute(db, "create table users (id integer primary key, name text)")
 
       :ok = DuckDB.execute(db, "insert into users (id, name) values (1, 'Jim')")
       :ok = DuckDB.execute(db, "insert into users (id, name) values (2, 'Bob')")
@@ -85,8 +84,7 @@ defmodule Exduckdb.ConnectionTest do
 
       {:ok, db} = DuckDB.open(path)
 
-      :ok =
-        DuckDB.execute(db, "create table users (id integer primary key, name text)")
+      :ok = DuckDB.execute(db, "create table users (id integer primary key, name text)")
 
       DuckDB.close(db)
 
@@ -109,6 +107,45 @@ defmodule Exduckdb.ConnectionTest do
         |> Connection.handle_execute([], [], conn)
 
       assert result.rows == nil
+
+      File.rm(path)
+    end
+
+    test "returns timely and in order for big data sets" do
+      path = Temp.path!()
+
+      {:ok, db} = DuckDB.open(path)
+
+      :ok = DuckDB.execute(db, "create table users (id integer primary key, name text)")
+
+      1..10_000
+      |> Stream.chunk_every(20)
+      |> Stream.each(fn chunk ->
+        values = Enum.map_join(chunk, ", ", fn i -> "(#{i}, 'User-#{i}')" end)
+        DuckDB.execute(db, "insert into users (id, name) values #{values}")
+      end)
+      |> Stream.run()
+
+      :ok = DuckDB.close(db)
+
+      {:ok, conn} = Connection.connect(database: path)
+
+      {:ok, _query, result, _conn} =
+        Connection.handle_execute(
+          %Query{
+            statement: "SELECT * FROM users"
+          },
+          [],
+          [timeout: 1],
+          conn
+        )
+
+      assert result.command == :execute
+      assert length(result.rows) == 10_000
+
+      Enum.with_index(result.rows, fn row, i ->
+        assert row == [i + 1, "User-#{i + 1}"]
+      end)
 
       File.rm(path)
     end

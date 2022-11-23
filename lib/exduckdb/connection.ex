@@ -355,6 +355,7 @@ defmodule Exduckdb.Connection do
     end
   end
 
+  @spec maybe_changes(DuckDB.db(), Query.t()) :: integer() | nil
   defp maybe_changes(db, %Query{command: command})
        when command in [:update, :insert, :delete] do
     case DuckDB.changes(db) do
