@@ -8,7 +8,7 @@ defmodule Exduckdb.IntegrationTest do
   test "simple prepare execute and close" do
     path = Temp.path!()
     {:ok, db} = DuckDB.open(path)
-    :ok = DuckDB.execute(db, "create table test (id ingeger primary key, stuff text)")
+    :ok = DuckDB.execute(db, "create table test (id integer primary key, stuff text)")
     :ok = DuckDB.close(db)
 
     {:ok, conn} = Connection.connect(database: path)

@@ -34,6 +34,7 @@ CFLAGS += -Ic_src -Ic_src/duckdb/src -Ic_src/duckdb/sqlite3_api_wrapper/
 
 KERNEL_NAME := $(shell uname -s)
 
+MIX_APP_PATH = .
 PREFIX = $(MIX_APP_PATH)/priv
 BUILD  = $(MIX_APP_PATH)/obj
 LIB_NAME = $(PREFIX)/duckdb_nif.so
@@ -47,7 +48,10 @@ ifeq ($(KERNEL_NAME), Linux)
 endif
 ifeq ($(KERNEL_NAME), Darwin)
 	CFLAGS += -fPIC
-	LDFLAGS += -shared -flat_namespace -undefined suppress -L c_src/duckdb/build/release/src/ -llibduckdb_static -L./c_src/duckdb/build/release/tools/sqlite3_api_wrapper/ -llibsqlite3_api_wrapper
+	RELEASE_PATH = ./c_src/duckdb/build/release
+	LDFLAGS += -shared -flat_namespace -undefined suppress -L$(RELEASE_PATH)/src -L$(RELEASE_PATH)/tools/sqlite3_api_wrapper
+	LDLIBS += -l llibsqlite2_api_wrapper
+	# LDFLAGS += -shared -flat_namespace -undefined suppress -L$(MIX_APP_PATH)/c_src/duckdb/build/release/src/ -llibduckdb_static -L./c_src/duckdb/build/release/tools/sqlite3_api_wrapper/ -llibsqlite3_api_wrapper
 endif
 ifeq (MINGW, $(findstring MINGW,$(KERNEL_NAME)))
 	CFLAGS += -fPIC
