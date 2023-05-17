@@ -50,7 +50,6 @@ ifeq ($(KERNEL_NAME), Darwin)
 	CFLAGS += -fPIC
 	RELEASE_PATH = ./c_src/duckdb/build/release
 	LDFLAGS += -shared -flat_namespace -undefined suppress -L$(RELEASE_PATH)/src -L$(RELEASE_PATH)/tools/sqlite3_api_wrapper
-	LDLIBS += -l llibsqlite2_api_wrapper
 	# LDFLAGS += -shared -flat_namespace -undefined suppress -L$(MIX_APP_PATH)/c_src/duckdb/build/release/src/ -llibduckdb_static -L./c_src/duckdb/build/release/tools/sqlite3_api_wrapper/ -llibsqlite3_api_wrapper
 endif
 ifeq (MINGW, $(findstring MINGW,$(KERNEL_NAME)))
